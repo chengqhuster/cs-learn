@@ -23,7 +23,7 @@ public class NFA implements FiniteAutomaton {
     NFANode end;
 
     /**
-     * 有限状态自动机的状态转移可以看作是一个有向无环图 (DAG)
+     * 有限状态自动机的状态转移可以看作是一个有向图
      *
      * 非确定有限状态自动机的转移条件可以为空字符, 或者转移的结果是一个状态集而不是确定的一个状态
      */

@@ -21,6 +21,8 @@ public class DFATable implements FiniteAutomaton {
     // 列方向为状态, 行方向为字符, 数组元素表示该行状态在接受该列字符后跳转的状态
     private int[][] stateTable;
 
+    private Set<Integer> acceptStates = new HashSet<>();
+
     private DFATable(int stateCount) {
         this.stateTable = new int[stateCount][ASCII_TOTAL];
         for (int i = 0; i < stateCount; i++) {
@@ -54,6 +56,9 @@ public class DFATable implements FiniteAutomaton {
             for (int i = 0; i < queue.size(); i++) {
                 DFAGraph.DFANode node = queue.poll();
                 visited.add(node.value);
+                if (node.accept) {
+                    dfaTable.acceptStates.add(node.value);
+                }
                 for (Map.Entry<Character, DFAGraph.DFANode> entry : node.nextNodes.entrySet()) {
                     dfaTable.stateTable[node.value][entry.getKey()] = entry.getValue().value;
                     if (!visited.contains(entry.getValue().value)) {

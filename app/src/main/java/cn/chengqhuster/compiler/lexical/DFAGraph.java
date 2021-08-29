@@ -1,6 +1,7 @@
 package cn.chengqhuster.compiler.lexical;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -28,7 +29,7 @@ public class DFAGraph implements FiniteAutomaton {
     int count;
 
     /**
-     * 有限状态自动机的转移函数可以看作是一个有向无环图 (DAG)
+     * 有限状态自动机的转移函数可以看作是一个有向图
      *
      * 确定有限状态自动机的转移条件不可以为空字符, 转移的结果是确定的一个状态
      */
@@ -45,6 +46,23 @@ public class DFAGraph implements FiniteAutomaton {
         int value;
 
         Map<Character, DFANode> nextNodes = new HashMap<>();
+
+        @Override
+        public int hashCode() {
+            return value;
+        }
+
+        @Override
+        public boolean equals(Object obj) {
+            if (obj == null) {
+                return false;
+            }
+            if (!(obj instanceof DFANode)) {
+                return false;
+            }
+            DFANode other = (DFANode) obj;
+            return other.value == this.value;
+        }
     }
 
     private DFAGraph(DFANode start, int count) {
@@ -63,7 +81,171 @@ public class DFAGraph implements FiniteAutomaton {
         throw new UnsupportedOperationException();
     }
 
+    /**
+     * hopcroft 算法, DFA 的最小化, 基于等价类的思想
+     * @param dfaGraph
+     * @return
+     */
+    public static DFAGraph hopcroft(DFAGraph dfaGraph) {
+        // 状态映射
+        Map<DFAGraph.DFANode, Set<DFAGraph.DFANode>> trans = splitByAcceptState(dfaGraph);
 
+        boolean flag = true;
+        while (flag) {
+            Set<String> visited = new HashSet<>();
+            flag = false;
+            for (Set<DFAGraph.DFANode> nodes : trans.values()) {
+                if (nodes.size() == 1) {
+                    continue;
+                }
+                String tag = dfaStateSetTag(nodes);
+                if (visited.contains(tag)) {
+                    continue;
+                }
+                visited.add(tag);
+
+                Set<Character> chars = dfaStateSetPathChar(nodes);
+                for (char c : chars) {
+                    flag = spiltByChar(trans, nodes, c);
+                    if (flag) {
+                        break;
+                    }
+                }
+            }
+        }
+
+        // 构建最小 DFA 节点
+        Map<String, DFAGraph.DFANode> minDfaNodeMap = new HashMap<>();
+        int number = 0;
+        for (Set<DFAGraph.DFANode> nodes : trans.values()) {
+            String tag = dfaStateSetTag(nodes);
+            if (!minDfaNodeMap.containsKey(tag)) {
+                DFAGraph.DFANode node = new DFANode();
+                node.value = number++;
+                minDfaNodeMap.put(tag, node);
+            }
+        }
+
+        // 构建最小 DFA 状态转移
+        Set<Integer> nodeVisited = new HashSet<>();
+        Queue<DFAGraph.DFANode> queue = new LinkedList<>();
+        queue.offer(dfaGraph.start);
+
+        // bfs
+        while (!queue.isEmpty()) {
+            for (int i = 0; i < queue.size(); i++) {
+                DFAGraph.DFANode node = queue.poll();
+                nodeVisited.add(node.value);
+                String setTag = dfaStateSetTag(trans.get(node));
+                if (node.accept) {
+                    minDfaNodeMap.get(setTag).accept = true;
+                }
+                for (Map.Entry<Character, DFAGraph.DFANode> entry : node.nextNodes.entrySet()) {
+                    minDfaNodeMap.get(setTag).nextNodes.put(entry.getKey(),
+                            minDfaNodeMap.get(dfaStateSetTag(trans.get(entry.getValue()))));
+                    if (!nodeVisited.contains(entry.getValue().value)) {
+                        queue.offer(entry.getValue());
+                    }
+                }
+            }
+        }
+
+        return new DFAGraph(minDfaNodeMap.get(dfaStateSetTag(trans.get(dfaGraph.start))), number);
+    }
+
+    private static Map<DFAGraph.DFANode, Set<DFAGraph.DFANode>> splitByAcceptState(DFAGraph dfa) {
+        Map<DFAGraph.DFANode, Set<DFAGraph.DFANode>> trans = new HashMap<>();
+
+        Set<Integer> visited = new HashSet<>();
+        Queue<DFAGraph.DFANode> queue = new LinkedList<>();
+        queue.offer(dfa.start);
+        Set<DFAGraph.DFANode> acceptSet = new HashSet<>();
+        Set<DFAGraph.DFANode> notAcceptSet = new HashSet<>();
+
+        // bfs
+        while (!queue.isEmpty()) {
+            for (int i = 0; i < queue.size(); i++) {
+                DFAGraph.DFANode node = queue.poll();
+                visited.add(node.value);
+                if (node.accept) {
+                    acceptSet.add(node);
+                    trans.put(node, acceptSet);
+                } else {
+                    notAcceptSet.add(node);
+                    trans.put(node, notAcceptSet);
+                }
+                for (DFAGraph.DFANode next : node.nextNodes.values()) {
+                    if (!visited.contains(next.value)) {
+                        queue.offer(next);
+                    }
+                }
+            }
+        }
+
+        return trans;
+    }
+
+    /**
+     * dfa 状态集合内每个状态跳转的字符条件集合
+     * @param nodes
+     * @return
+     */
+    private static Set<Character> dfaStateSetPathChar(Collection<DFAGraph.DFANode> nodes) {
+        return nodes.stream()
+                .map(it -> it.nextNodes.keySet())
+                .flatMap(Collection::stream)
+                .collect(Collectors.toSet());
+    }
+
+    /**
+     * 将 dfa 状态集合按照编号排序, 用编号组成的字串作为状态集合的唯一标识
+     * @param nodes
+     * @return
+     */
+    private static String dfaStateSetTag(Collection<DFAGraph.DFANode> nodes) {
+        return nodes.stream()
+                .map(it -> it.value)
+                .sorted()
+                .map(String::valueOf)
+                .reduce("", (a, b) -> a + b);
+    }
+
+    /**
+     * 通过字符 c 来分割状态集合
+     * @param setMap
+     * @param nodes
+     * @param c
+     * @return 存在划分时返回 true
+     */
+    private static boolean spiltByChar(Map<DFAGraph.DFANode, Set<DFAGraph.DFANode>> setMap,
+                                    Set<DFAGraph.DFANode> nodes,
+                                    char c) {
+        Map<DFAGraph.DFANode, String> node2stateTag = new HashMap<>();
+        for (DFAGraph.DFANode node : nodes) {
+            if (node.nextNodes.containsKey(c)) {
+                node2stateTag.put(node, dfaStateSetTag(setMap.get(node.nextNodes.get(c))));
+            } else {
+                node2stateTag.put(node, "");
+            }
+        }
+        Set<String> tags = new HashSet<>(node2stateTag.values());
+        if (tags.size() == 1) {
+            // 无须分割
+            return false;
+        } else {
+            // 需要分割
+            for (String tag : tags) {
+                Set<DFAGraph.DFANode> splitSet = new HashSet<>();
+                for (Map.Entry<DFAGraph.DFANode, String> entry : node2stateTag.entrySet()) {
+                    if (tag.equals(entry.getValue())) {
+                        splitSet.add(entry.getKey());
+                        setMap.put(entry.getKey(), splitSet);
+                    }
+                }
+            }
+            return true;
+        }
+    }
 
     /**
      * 子集构造法, 将 NFA 转换为 DFA
