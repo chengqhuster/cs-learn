@@ -74,6 +74,9 @@ public class ReUtils {
                     cs[pos++] = stack.pop();
                 }
                 stack.pop();
+            } else if (c == ReExp.CLOSURE_OPERATOR) {
+                // 右单目运算符直接入存储表
+                cs[pos++] = c;
             } else if (ReExp.OPERATOR_PRIORITY.containsKey(c)) {
                 while (ReExp.OPERATOR_PRIORITY.containsKey(stack.peek())
                         && ReExp.OPERATOR_PRIORITY.get(stack.peek()) > ReExp.OPERATOR_PRIORITY.get(c)) {
