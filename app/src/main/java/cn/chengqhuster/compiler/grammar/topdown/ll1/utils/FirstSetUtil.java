@@ -24,12 +24,12 @@ public class FirstSetUtil {
             for (ContextFreeGrammar.Production production : cfg.productions) {
                 Set<String> firstSet = firstSetMap.get(production.nonTerminator);
                 for (String symbol : production.symbols) {
-                    if (cfg.terminators.contains(symbol)) {
+                    if (cfg.terminatorIndexMap.containsKey(symbol)) {
                         // 注意 or 熔断
                         flag = firstSet.add(symbol) || flag;
                         break;
                     }
-                    if (cfg.nonTerminators.contains(symbol)) {
+                    if (cfg.nonTerminatorIndexMap.containsKey(symbol)) {
                         flag = firstSet.addAll(firstSetMap.get(symbol)) || flag;
                         if (!nullableSet.contains(symbol)) {
                             break;

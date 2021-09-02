@@ -20,19 +20,23 @@ public class FollowSetUtil {
 
         Map<String, Set<String>> followSetMap = cfg.nonTerminators.stream()
                 .collect(Collectors.toMap(Function.identity(), it -> new HashSet<>()));
+
+        // 起始符号的 FOLLOW 集合一定包含终止符
+        // firstSetMap.get(cfg.start).add(ContextFreeGrammar.END_TERMINATOR);
+
         boolean flag = true;
         while (flag) {
             flag = false;
             for (ContextFreeGrammar.Production production : cfg.productions) {
                 // 逆序遍历
                 Set<String> temp = followSetMap.get(production.nonTerminator);
-                for (int i = production.symbols.length - 1; i >= 0; i--) {
-                    String symbol = production.symbols[i];
-                    if (cfg.terminators.contains(symbol)) {
+                for (int i = production.symbols.size() - 1; i >= 0; i--) {
+                    String symbol = production.symbols.get(i);
+                    if (cfg.terminatorIndexMap.containsKey(symbol)) {
                         temp = new HashSet<>();
                         temp.add(symbol);
                     }
-                    if (cfg.nonTerminators.contains(symbol)) {
+                    if (cfg.nonTerminatorIndexMap.containsKey(symbol)) {
                         flag = followSetMap.get(symbol).addAll(temp) || flag;
                         if (nullableSet.contains(symbol)) {
                             temp.addAll(firstSetMap.get(symbol));
