@@ -22,14 +22,15 @@ public class FollowSetUtil {
                 .collect(Collectors.toMap(Function.identity(), it -> new HashSet<>()));
 
         // 起始符号的 FOLLOW 集合一定包含终止符
-        // firstSetMap.get(cfg.start).add(ContextFreeGrammar.END_TERMINATOR);
+        followSetMap.get(cfg.start).add(ContextFreeGrammar.END_TERMINATOR);
 
         boolean flag = true;
         while (flag) {
             flag = false;
             for (ContextFreeGrammar.Production production : cfg.productions) {
+                // FIX-BUG 必须新建集合，不能直接赋值引用
+                Set<String> temp = new HashSet<>(followSetMap.get(production.nonTerminator));
                 // 逆序遍历
-                Set<String> temp = followSetMap.get(production.nonTerminator);
                 for (int i = production.symbols.size() - 1; i >= 0; i--) {
                     String symbol = production.symbols.get(i);
                     if (cfg.terminatorIndexMap.containsKey(symbol)) {

@@ -9,6 +9,9 @@ public class NullableSetUtil {
 
     /**
      * 获取 NULLABLE 集，不动点算法
+     * NULLABLE 集用于指导后续的 FIRST 和 FOLLOW 集的构造
+     * 当然也可以直接将 空串 加入到 FIRST 集中（注意 FOLLOW 集中没有空串）
+     * 以上两者是等价的
      */
     public static Set<String> getNullable(ContextFreeGrammar cfg) {
         Set<String> nullableSet = new HashSet<>();
