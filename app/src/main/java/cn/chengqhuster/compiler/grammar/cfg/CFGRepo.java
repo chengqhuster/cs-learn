@@ -25,7 +25,7 @@ public class CFGRepo {
         PLUS_MULTIPLY_EP1_CFG.putNonTerminators(Arrays.asList("E", "T", "F"));
         PLUS_MULTIPLY_EP1_CFG.start = "E";
         PLUS_MULTIPLY_EP1_CFG.productions = Arrays.asList(
-                new ContextFreeGrammar.Production("E", Arrays.asList("E", "T")),
+                new ContextFreeGrammar.Production("E", Arrays.asList("E", "+", "T")),
                 new ContextFreeGrammar.Production("E", Collections.singletonList("T")),
                 new ContextFreeGrammar.Production("T", Arrays.asList("T", "*", "F")),
                 new ContextFreeGrammar.Production("T", Collections.singletonList("F")),

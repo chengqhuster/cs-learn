@@ -1,4 +1,4 @@
-package cn.chengqhuster.compiler.grammar.topdown.ll1;
+package cn.chengqhuster.compiler.grammar.bottomup.slr;
 
 import cn.chengqhuster.compiler.grammar.cfg.CFGRepo;
 import cn.chengqhuster.compiler.grammar.cfg.ContextFreeGrammar;
@@ -6,15 +6,14 @@ import org.junit.jupiter.api.Test;
 
 import java.util.Arrays;
 
-import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.*;
 
-class LL1AnalyseTableTest {
+class SLRAnalyseTableTest {
 
     @Test
-    void grammarCheckTest() {
-        ContextFreeGrammar ll1CFG = CFGRepo.PLUS_MULTIPLY_EP2_CFG;
-        LL1AnalyseTable analyseTable = new LL1AnalyseTable(ll1CFG);
+    void checkGrammar() {
+        ContextFreeGrammar lrCFG = CFGRepo.PLUS_MULTIPLY_EP1_CFG;
+        SLRAnalyseTable analyseTable = new SLRAnalyseTable(lrCFG);
 
         String epA = "id * ( id + id ) + ( id + id ) * ( id + id )";
         assertTrue(analyseTable.grammarCheck(Arrays.asList(epA.split(" "))));

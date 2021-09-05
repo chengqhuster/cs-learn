@@ -32,9 +32,7 @@ public class LL1AnalyseTable {
         Map<String, Set<String>> followSet = FollowSetUtil.getFollowSet(cfg, nullableSet, firstSet);
         Map<Integer, Set<String>> selectSet = SelectSetUtil.getSelectSetUtil(cfg, nullableSet, firstSet, followSet);
 
-        // 由生成式的 FIRST 集生成分析表，终结符集增加终止符号
-        cfg.terminators.add(ContextFreeGrammar.END_TERMINATOR);
-        cfg.terminatorIndexMap.put(ContextFreeGrammar.END_TERMINATOR, cfg.terminators.size() - 1);
+        // 由生成式的 FIRST 集生成分析表
         this.table = new int[cfg.nonTerminators.size()][cfg.terminators.size()];
         for (int i = 0; i < table.length; i++) {
             for (int j = 0; j < table[0].length; j++) {
@@ -77,7 +75,7 @@ public class LL1AnalyseTable {
             } else {
                 int state = this.table[this.cfg.nonTerminatorIndexMap.get(stack.peek())]
                         [this.cfg.terminatorIndexMap.get(analyseTokens.get(pos))];
-                if (state == -1) {
+                if (state == STATE_ERROR) {
                     // 没有合法的跳转状态（对应产生式）
                     return false;
                 } else {

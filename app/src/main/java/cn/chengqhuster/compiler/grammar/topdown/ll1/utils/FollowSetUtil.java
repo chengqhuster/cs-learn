@@ -23,6 +23,9 @@ public class FollowSetUtil {
 
         // 起始符号的 FOLLOW 集合一定包含终止符
         followSetMap.get(cfg.start).add(ContextFreeGrammar.END_TERMINATOR);
+        // 终结符集增加终止符号
+        cfg.terminators.add(ContextFreeGrammar.END_TERMINATOR);
+        cfg.terminatorIndexMap.put(ContextFreeGrammar.END_TERMINATOR, cfg.terminators.size() - 1);
 
         boolean flag = true;
         while (flag) {

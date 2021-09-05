@@ -1,4 +1,4 @@
-package cn.chengqhuster.compiler.grammar.bottomup.lr0.utils;
+package cn.chengqhuster.compiler.grammar.bottomup.utils;
 
 import cn.chengqhuster.compiler.grammar.cfg.ContextFreeGrammar;
 
