@@ -8,11 +8,6 @@ import java.util.Map;
 public class ContextFreeGrammar {
 
     /**
-     * 终止符号，非语法解析目标符号串自身的符号，用于分析过程
-     */
-    public static final String END_TERMINATOR = "$";
-
-    /**
      * 终结符集合
      */
     public List<String> terminators;

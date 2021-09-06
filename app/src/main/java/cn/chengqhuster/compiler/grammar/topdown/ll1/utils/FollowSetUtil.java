@@ -8,6 +8,8 @@ import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
+import static cn.chengqhuster.compiler.grammar.GrammarUtil.END_TERMINATOR;
+
 public class FollowSetUtil {
 
     /**
@@ -22,10 +24,7 @@ public class FollowSetUtil {
                 .collect(Collectors.toMap(Function.identity(), it -> new HashSet<>()));
 
         // 起始符号的 FOLLOW 集合一定包含终止符
-        followSetMap.get(cfg.start).add(ContextFreeGrammar.END_TERMINATOR);
-        // 终结符集增加终止符号
-        cfg.terminators.add(ContextFreeGrammar.END_TERMINATOR);
-        cfg.terminatorIndexMap.put(ContextFreeGrammar.END_TERMINATOR, cfg.terminators.size() - 1);
+        followSetMap.get(cfg.start).add(END_TERMINATOR);
 
         boolean flag = true;
         while (flag) {

@@ -1,4 +1,4 @@
-package cn.chengqhuster.compiler.grammar.bottomup.utils;
+package cn.chengqhuster.compiler.grammar;
 
 import cn.chengqhuster.compiler.grammar.cfg.ContextFreeGrammar;
 
@@ -6,9 +6,14 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
-public class AugmentedGrammarUtil {
+public class GrammarUtil {
 
-    public static final String START_NON_TERMINATOR = "$START$";
+    public static final String START_NON_TERMINATOR = "#START#";
+
+    /**
+     * 终止符号，非语法解析目标符号串自身的符号，用于分析过程
+     */
+    public static final String END_TERMINATOR = "$END$";
 
     /**
      * 增广文法
@@ -33,5 +38,13 @@ public class AugmentedGrammarUtil {
         augmentedCfg.productions = productions;
 
         return augmentedCfg;
+    }
+
+    /**
+     * 给 grammar 添加终止符（属于终结符，同时也一定属于开始符号的 FOLLOW 集）
+     */
+    public static void endGrammar(ContextFreeGrammar cfg) {
+        cfg.terminators.add(END_TERMINATOR);
+        cfg.terminatorIndexMap.put(END_TERMINATOR, cfg.terminators.size() - 1);
     }
 }

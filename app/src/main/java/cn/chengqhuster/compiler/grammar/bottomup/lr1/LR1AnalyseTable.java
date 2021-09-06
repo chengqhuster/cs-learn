@@ -1,15 +1,14 @@
-package cn.chengqhuster.compiler.grammar.bottomup.slr;
+package cn.chengqhuster.compiler.grammar.bottomup.lr1;
 
 import cn.chengqhuster.compiler.grammar.GrammarUtil;
 import cn.chengqhuster.compiler.grammar.bottomup.LRAnalyseTable;
-import cn.chengqhuster.compiler.grammar.bottomup.data.LR0ItemGroup;
-import cn.chengqhuster.compiler.grammar.bottomup.utils.LR0ItemClosureUtil;
+import cn.chengqhuster.compiler.grammar.bottomup.data.LR1ItemGroup;
+import cn.chengqhuster.compiler.grammar.bottomup.utils.LR1ItemClosureUtil;
 import cn.chengqhuster.compiler.grammar.cfg.ContextFreeGrammar;
 import cn.chengqhuster.compiler.grammar.topdown.ll1.utils.FirstSetUtil;
-import cn.chengqhuster.compiler.grammar.topdown.ll1.utils.FollowSetUtil;
 import cn.chengqhuster.compiler.grammar.topdown.ll1.utils.NullableSetUtil;
-import org.apache.commons.lang3.tuple.ImmutablePair;
-import org.apache.commons.lang3.tuple.Pair;
+import org.apache.commons.lang3.tuple.ImmutableTriple;
+import org.apache.commons.lang3.tuple.Triple;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -20,60 +19,60 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-public class SLRAnalyseTable extends LRAnalyseTable {
+import static cn.chengqhuster.compiler.grammar.GrammarUtil.END_TERMINATOR;
+
+public class LR1AnalyseTable extends LRAnalyseTable {
 
     /**
-     * 上下文无关文法转换为 SLR 分析表
+     * 上下文无关文法转换为 LR1 分析表
+     * 和 SLR 的过程几乎相同，区别是 CLOSURE 的计算以及规约的条件
      * @param cfg
      */
-    public SLRAnalyseTable(ContextFreeGrammar cfg) {
+    public LR1AnalyseTable(ContextFreeGrammar cfg) {
         // 转换为增广文法
         ContextFreeGrammar augmentedCfg = GrammarUtil.augmentedGrammar(cfg);
         GrammarUtil.endGrammar(augmentedCfg);
         this.cfg = augmentedCfg;
-        // 获取 FOLLOW 集，用于指导生成分析表
+        // 获取 FIRST 集，用于指导生成分析表
         Set<String> nullableSet = NullableSetUtil.getNullable(augmentedCfg);
         Map<String, Set<String>> firstSet = FirstSetUtil.getFirstSet(augmentedCfg, nullableSet);
-        Map<String, Set<String>> followSet = FollowSetUtil.getFollowSet(augmentedCfg, nullableSet, firstSet);
-        // 工作表的思想构建 SLA 的 DFA，每个状态都是项集，项集包含内核项和非内核项
+        // 终结符集增加终止符号
+        // 工作表的思想构建 LR1 的 DFA，每个状态都是项集，项集包含内核项和非内核项
         Map<Integer, int[][]> actionItemMap = new HashMap<>();
         Map<Integer, int[]> gotoItemMap = new HashMap<>();
-        List<Pair<Integer, Integer>> initCoreItems = Collections.singletonList(new ImmutablePair<>(0, 0));
-        LR0ItemGroup initGroup = new LR0ItemGroup(initCoreItems, LR0ItemClosureUtil
-                .getNonCoreItem(augmentedCfg, initCoreItems));
+        List<Triple<Integer, Integer, String>> initCoreItems = Collections.singletonList(new ImmutableTriple<>(0, 0, END_TERMINATOR));
+        LR1ItemGroup initGroup = new LR1ItemGroup(initCoreItems, LR1ItemClosureUtil.getNonCoreItem(augmentedCfg, nullableSet, firstSet, initCoreItems));
         // 状态（项集）信息
-        List<LR0ItemGroup> itemGroups = new ArrayList<>();
+        List<LR1ItemGroup> itemGroups = new ArrayList<>();
         Map<String, Integer> coreTag2Num = new HashMap<>();
         coreTag2Num.put(initGroup.getCoreTag(), 0);
         itemGroups.add(initGroup);
         // 工作表算法
         Set<String> visited = new HashSet<>();
-        LinkedList<LR0ItemGroup> queue = new LinkedList<>();
+        LinkedList<LR1ItemGroup> queue = new LinkedList<>();
         queue.offer(initGroup);
 
         while (!queue.isEmpty()) {
             for (int i = 0; i < queue.size(); i++) {
-                LR0ItemGroup itemGroup = queue.poll();
+                LR1ItemGroup itemGroup = queue.poll();
                 if (!visited.contains(itemGroup.getCoreTag())) {
                     visited.add(itemGroup.getCoreTag());
                     int[][] actionItem = getInitActionItem(augmentedCfg);
                     int[] gotoItem = getInitGotoItem(augmentedCfg);
                     // 计算规约
-                    for (Pair<Integer, Integer> coreItem : itemGroup.coreItems) {
+                    for (Triple<Integer, Integer, String> coreItem : itemGroup.coreItems) {
                         ContextFreeGrammar.Production p = augmentedCfg.productions.get(coreItem.getLeft());
-                        if (p.symbols.size() == coreItem.getRight()) {
-                            // 根据 FOLLOW 集进行规约
-                            for (String terminator : followSet.get(p.nonTerminator)) {
-                                emptyActionStateCheck(actionItem[augmentedCfg.terminatorIndexMap.get(terminator)]);
-                                actionItem[augmentedCfg.terminatorIndexMap.get(terminator)] = new int[]{TYPE_REDUCE, coreItem.getLeft()};
-                            }
+                        if (p.symbols.size() == coreItem.getMiddle()) {
+                            // 根据终止符进行规约
+                            emptyActionStateCheck(actionItem[augmentedCfg.terminatorIndexMap.get(coreItem.getRight())]);
+                            actionItem[augmentedCfg.terminatorIndexMap.get(coreItem.getRight())] = new int[]{TYPE_REDUCE, coreItem.getLeft()};
                         }
                     }
 
-                    Map<String, List<Pair<Integer, Integer>>> nextCoreItems = getNextCoreItems(augmentedCfg, itemGroup);
-                    for (Map.Entry<String, List<Pair<Integer, Integer>>> entry : nextCoreItems.entrySet()) {
-                        LR0ItemGroup nextGroup = new LR0ItemGroup(entry.getValue(),
-                                LR0ItemClosureUtil.getNonCoreItem(augmentedCfg, entry.getValue()));
+                    Map<String, List<Triple<Integer, Integer, String>>> nextCoreItems = getNextCoreItems(augmentedCfg, itemGroup);
+                    for (Map.Entry<String, List<Triple<Integer, Integer, String>>> entry : nextCoreItems.entrySet()) {
+                        LR1ItemGroup nextGroup = new LR1ItemGroup(entry.getValue(),
+                                LR1ItemClosureUtil.getNonCoreItem(augmentedCfg, nullableSet, firstSet, entry.getValue()));
                         if (!coreTag2Num.containsKey(nextGroup.getCoreTag())) {
                             coreTag2Num.put(nextGroup.getCoreTag(), itemGroups.size());
                             itemGroups.add(nextGroup);
@@ -87,8 +86,8 @@ public class SLRAnalyseTable extends LRAnalyseTable {
                         // ACTION 表
                         if (augmentedCfg.terminatorIndexMap.containsKey(entry.getKey())) {
                             emptyActionStateCheck(actionItem[augmentedCfg.terminatorIndexMap.get(entry.getKey())]);
-                            actionItem[augmentedCfg.terminatorIndexMap.get(entry.getKey())] = new int[]{TYPE_SHIFT,
-                                    coreTag2Num.get(nextGroup.getCoreTag())};
+                            actionItem[augmentedCfg.terminatorIndexMap.get(entry.getKey())] =
+                                    new int[]{TYPE_SHIFT, coreTag2Num.get(nextGroup.getCoreTag())};
                         }
                     }
                     actionItemMap.put(coreTag2Num.get(itemGroup.getCoreTag()), actionItem);
@@ -106,18 +105,19 @@ public class SLRAnalyseTable extends LRAnalyseTable {
         }
     }
 
-    private Map<String, List<Pair<Integer, Integer>>> getNextCoreItems(ContextFreeGrammar cfg, LR0ItemGroup itemGroup) {
-        Map<String, List<Pair<Integer, Integer>>> res = new HashMap<>();
-        List<Pair<Integer, Integer>> items = new ArrayList<>(itemGroup.coreItems);
+    private Map<String, List<Triple<Integer, Integer, String>>> getNextCoreItems(ContextFreeGrammar cfg,
+                                                                                 LR1ItemGroup itemGroup) {
+        Map<String, List<Triple<Integer, Integer, String>>> res = new HashMap<>();
+        List<Triple<Integer, Integer, String>> items = new ArrayList<>(itemGroup.coreItems);
         items.addAll(itemGroup.nonCoreItems);
-        for (Pair<Integer, Integer> item : items) {
+        for (Triple<Integer, Integer, String> item : items) {
             ContextFreeGrammar.Production p = cfg.productions.get(item.getLeft());
-            if (item.getRight() < p.symbols.size()) {
-                String symbol = p.symbols.get(item.getRight());
+            if (item.getMiddle() < p.symbols.size()) {
+                String symbol = p.symbols.get(item.getMiddle());
                 if (!res.containsKey(symbol)) {
                     res.put(symbol, new ArrayList<>());
                 }
-                res.get(symbol).add(new ImmutablePair<>(item.getLeft(), item.getRight() + 1));
+                res.get(symbol).add(new ImmutableTriple<>(item.getLeft(), item.getMiddle() + 1, item.getRight()));
             }
         }
         return res;

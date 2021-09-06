@@ -1,5 +1,6 @@
 package cn.chengqhuster.compiler.grammar.topdown.ll1;
 
+import cn.chengqhuster.compiler.grammar.GrammarUtil;
 import cn.chengqhuster.compiler.grammar.cfg.ContextFreeGrammar;
 import cn.chengqhuster.compiler.grammar.topdown.ll1.utils.FirstSetUtil;
 import cn.chengqhuster.compiler.grammar.topdown.ll1.utils.SelectSetUtil;
@@ -11,6 +12,8 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+
+import static cn.chengqhuster.compiler.grammar.GrammarUtil.END_TERMINATOR;
 
 /**
  * LL1 语法分析表
@@ -26,6 +29,7 @@ public class LL1AnalyseTable {
     private final int[][] table;
 
     public LL1AnalyseTable(ContextFreeGrammar cfg) {
+        GrammarUtil.endGrammar(cfg);
         this.cfg = cfg;
         Set<String> nullableSet = NullableSetUtil.getNullable(cfg);
         Map<String, Set<String>> firstSet = FirstSetUtil.getFirstSet(cfg, nullableSet);
@@ -53,7 +57,7 @@ public class LL1AnalyseTable {
 
     public boolean grammarCheck(List<String> tokens) {
         List<String> analyseTokens = new ArrayList<>(tokens);
-        analyseTokens.add(ContextFreeGrammar.END_TERMINATOR);
+        analyseTokens.add(END_TERMINATOR);
         // token 检测
         if (analyseTokens.stream().anyMatch(it -> !this.cfg.terminatorIndexMap.containsKey(it)
                         && !this.cfg.nonTerminatorIndexMap.containsKey(it))) {
@@ -61,10 +65,10 @@ public class LL1AnalyseTable {
         }
 
         LinkedList<String> stack = new LinkedList<>();
-        stack.push(ContextFreeGrammar.END_TERMINATOR);
+        stack.push(END_TERMINATOR);
         stack.push(this.cfg.start);
         int pos = 0;
-        while (!ContextFreeGrammar.END_TERMINATOR.equals(stack.peek())) {
+        while (!END_TERMINATOR.equals(stack.peek())) {
             if (analyseTokens.get(pos).equals(stack.peek())) {
                 // token 匹配，一定是终结符
                 pos += 1;
