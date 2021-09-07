@@ -24,12 +24,12 @@ public class LR1ItemGroup {
     public String getCoreTag () {
         if (this.coreTag == null) {
             this.coreItems.sort((a, b) -> {
-                if (a.getLeft().equals(b.getLeft()) && a.getMiddle().equals(b.getMiddle())) {
-                    return a.getRight().compareTo(b.getRight());
-                } else if (a.getLeft().equals(b.getLeft())) {
+                if (!a.getLeft().equals(b.getLeft())) {
+                    return a.getLeft() - b.getLeft();
+                } else if (!a.getMiddle().equals(b.getMiddle())) {
                     return a.getMiddle() - b.getMiddle();
                 } else {
-                    return a.getLeft() - b.getLeft();
+                    return a.getRight().compareTo(b.getRight());
                 }
             });
             StringBuilder sb = new StringBuilder();
